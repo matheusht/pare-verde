@@ -1,25 +1,33 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Search, Plus, MapPin, ChevronRight, X, Menu } from "lucide-react"
+import { Plus, MapPin, ChevronRight, X, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Slider } from "@/components/ui/slider"
 import { Toggle } from "@/components/ui/toggle"
 import { cn } from "@/lib/utils"
 import { ReportingModal } from "@/components/reporting-modal"
+import { NeobrutalismBarChart } from "@/components/bar-chart"
+import { NeobrutalismLineChart } from "@/components/line-chart"
+import { LocationSearch } from "@/components/location-search"
+import { initializeMapbox } from "@/lib/mapbox"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 
 // Set Mapbox access token
 mapboxgl.accessToken = "pk.eyJ1IjoibWF0aGV1c2h0IiwiYSI6ImNtMXdzZXk2azBxeDcybW9lcjNsNXJ3OHUifQ.-hEjgr1XHuAwVKUHwGTfcA"
 
+
+// Initialize Mapbox with the access token
+initializeMapbox()
+
 export default function Dashboard() {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
+  const searchMarker = useRef<mapboxgl.Marker | null>(null)
   const [lng, setLng] = useState(-47.9292)
   const [lat, setLat] = useState(-15.7801)
   const [zoom, setZoom] = useState(5)
@@ -30,6 +38,32 @@ export default function Dashboard() {
   const [activeLayer, setActiveLayer] = useState<string>("heat")
   const [reportingModalOpen, setReportingModalOpen] = useState(false)
   const [clickedLocation, setClickedLocation] = useState<{ lat: number; lng: number } | undefined>(undefined)
+
+  // Sample data for charts
+  const greenCoverageData = [
+    { label: "2018", value: 18, color: "#4ade80" },
+    { label: "2019", value: 20, color: "#4ade80" },
+    { label: "2020", value: 22, color: "#4ade80" },
+    { label: "2021", value: 21, color: "#4ade80" },
+    { label: "2022", value: 23, color: "#4ade80" },
+    { label: "2023", value: 25, color: "#4ade80" },
+  ]
+
+  const temperatureData = {
+    labels: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"],
+    data: [
+      {
+        label: "Temperatura (°C)",
+        values: [32, 31, 30, 29, 28, 27],
+        color: "#ef4444",
+      },
+      {
+        label: "Média (°C)",
+        values: [28, 27, 26, 25, 24, 23],
+        color: "#60a5fa",
+      },
+    ],
+  }
 
   // Initialize map when component mounts
   useEffect(() => {
@@ -129,6 +163,12 @@ export default function Dashboard() {
           setSelectedLocation("Setor Comercial Sul, Brasília")
           setClickedLocation({ lat: e.lngLat.lat, lng: e.lngLat.lng })
         })
+
+        // Initialize search marker but don't add it to the map yet
+        searchMarker.current = new mapboxgl.Marker({
+          color: "#FF0000",
+          draggable: false,
+        })
       })
     }
   }, [lng, lat, zoom])
@@ -156,6 +196,11 @@ export default function Dashboard() {
               zoom: 13,
               essential: true,
             })
+
+            // Update search marker
+            if (searchMarker.current) {
+              searchMarker.current.setLngLat([position.coords.longitude, position.coords.latitude]).addTo(map.current)
+            }
           }
         },
         (error) => {
@@ -167,6 +212,36 @@ export default function Dashboard() {
 
   const handleReportButtonClick = () => {
     setReportingModalOpen(true)
+  }
+
+  // Handle location selection from search
+  const handleLocationSelect = (location: { name: string; coordinates: [number, number] }) => {
+    if (map.current) {
+      // Update the map position
+      map.current.flyTo({
+        center: location.coordinates,
+        zoom: 14,
+        essential: true,
+      })
+
+      // Update the search marker
+      if (searchMarker.current) {
+        searchMarker.current.setLngLat(location.coordinates).addTo(map.current)
+      } else {
+        // Create a new marker if it doesn't exist
+        searchMarker.current = new mapboxgl.Marker({
+          color: "#FF0000",
+          draggable: false,
+        })
+          .setLngLat(location.coordinates)
+          .addTo(map.current)
+      }
+
+      // Update state
+      setLng(location.coordinates[0])
+      setLat(location.coordinates[1])
+      setSelectedLocation(location.name)
+    }
   }
 
   return (
@@ -190,16 +265,9 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Global Search */}
+        {/* Location Search */}
         <div className="flex-1 max-w-xl mx-4">
-          <div className="relative">
-            <Input
-              type="text"
-              placeholder="Buscar por endereço, bairro ou cidade..."
-              className="w-full pl-10 pr-4 py-2 border-4 border-black shadow-neobrutalism"
-            />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5" />
-          </div>
+          <LocationSearch onLocationSelect={handleLocationSelect} />
         </div>
 
         <div className="flex items-center gap-2">
@@ -342,19 +410,15 @@ export default function Dashboard() {
 
             <TabsContent value="trends" className="mt-4">
               <div className="space-y-4">
-                <Card className="p-4 border-4 border-black shadow-neobrutalism">
-                  <h3 className="font-bold mb-2">Cobertura Verde (2010-2023)</h3>
-                  <div className="h-40 bg-gray-100 flex items-center justify-center">
-                    <p className="text-gray-500">Gráfico de tendência</p>
-                  </div>
-                </Card>
+                {/* Neobrutalism Bar Chart */}
+                <NeobrutalismBarChart title="Cobertura Verde (2018-2023)" data={greenCoverageData} />
 
-                <Card className="p-4 border-4 border-black shadow-neobrutalism">
-                  <h3 className="font-bold mb-2">Temperatura (2010-2023)</h3>
-                  <div className="h-40 bg-gray-100 flex items-center justify-center">
-                    <p className="text-gray-500">Gráfico de tendência</p>
-                  </div>
-                </Card>
+                {/* Neobrutalism Line Chart */}
+                <NeobrutalismLineChart
+                  title="Temperatura (Jan-Jun 2023)"
+                  labels={temperatureData.labels}
+                  data={temperatureData.data}
+                />
               </div>
             </TabsContent>
 

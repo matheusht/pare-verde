@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { StepOne } from "@/components/reporting-steps/step-one"
@@ -27,6 +27,16 @@ export function ReportingModal({ open, onOpenChange, initialLocation }: Reportin
     notifyMe: false,
     email: "",
   })
+
+  // Update location when initialLocation changes
+  useEffect(() => {
+    if (initialLocation) {
+      setFormData((prev) => ({
+        ...prev,
+        location: initialLocation,
+      }))
+    }
+  }, [initialLocation])
 
   const updateFormData = (data: Partial<typeof formData>) => {
     setFormData((prev) => ({ ...prev, ...data }))

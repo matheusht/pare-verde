@@ -9,9 +9,9 @@ import { Card } from "@/components/ui/card"
 import { MapPin } from "lucide-react"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
+import { initializeMapbox } from "@/lib/mapbox"
 
-// Set Mapbox access token
-mapboxgl.accessToken = "pk.eyJ1IjoibWF0aGV1c2h0IiwiYSI6ImNtMXdzZXk2azBxeDcybW9lcjNsNXJ3OHUifQ.-hEjgr1XHuAwVKUHwGTfcA"
+initializeMapbox()
 
 interface StepOneProps {
   formData: {
