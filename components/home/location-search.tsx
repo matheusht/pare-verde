@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Search, X, MapPin } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -21,8 +21,8 @@ export function LocationSearch({ onLocationSelect, className }: LocationSearchPr
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [hasSelected, setHasSelected] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -39,7 +39,7 @@ export function LocationSearch({ onLocationSelect, className }: LocationSearchPr
   }, [])
 
   // Search for locations using Mapbox Geocoding API
-  const searchLocations = async (searchQuery: string) => {
+  const searchLocations = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
       setSuggestions([])
       return
@@ -67,43 +67,52 @@ export function LocationSearch({ onLocationSelect, className }: LocationSearchPr
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   // Debounce search to avoid too many API calls
   useEffect(() => {
-    if (hasSelected) {
-      // Don't search if user just selected a location
-      setHasSelected(false)
-      return
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
     }
 
-    const timer = setTimeout(() => {
+    // Set new timeout
+    searchTimeoutRef.current = setTimeout(() => {
       searchLocations(query)
     }, 300)
 
-    return () => clearTimeout(timer)
-  }, [query, hasSelected])
+    // Cleanup function
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [query, searchLocations])
 
-  const handleSelectLocation = (suggestion: any) => {
-    const locationName = suggestion.place_name
-    const coordinates = suggestion.center // [longitude, latitude]
+  const handleSelectLocation = useCallback(
+    (suggestion: any) => {
+      const locationName = suggestion.place_name
+      const coordinates = suggestion.center // [longitude, latitude]
 
-    setQuery(locationName)
-    setSuggestions([])
-    setShowSuggestions(false)
-    setHasSelected(true)
+      // Clear the input and suggestions after selection
+      setQuery("")
+      setSuggestions([])
+      setShowSuggestions(false)
 
-    onLocationSelect({
-      name: locationName,
-      coordinates: coordinates,
-    })
-  }
+      // Call the parent component's handler
+      onLocationSelect({
+        name: locationName,
+        coordinates: coordinates,
+      })
+    },
+    [onLocationSelect],
+  )
 
-  const clearSearch = () => {
+  const clearSearch = useCallback(() => {
     setQuery("")
     setSuggestions([])
     setShowSuggestions(false)
-  }
+  }, [])
 
   return (
     <div ref={searchRef} className={cn("relative", className)}>
@@ -115,8 +124,8 @@ export function LocationSearch({ onLocationSelect, className }: LocationSearchPr
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => {
-            // Only show suggestions if we have some and user hasn't just selected one
-            if (suggestions.length > 0 && !hasSelected) {
+            // Only show suggestions if we have some
+            if (suggestions.length > 0) {
               setShowSuggestions(true)
             }
           }}

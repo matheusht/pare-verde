@@ -6,12 +6,15 @@ import { useEffect, useRef, useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
-import { MapPin } from "lucide-react"
+import { MapPin, Loader } from "lucide-react"
+import { MAPBOX_ACCESS_TOKEN } from "@/lib/mapbox"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
-import { initializeMapbox } from "@/lib/mapbox"
 
-initializeMapbox()
+// Ensure token is set
+if (typeof window !== "undefined") {
+  mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN
+}
 
 interface StepOneProps {
   formData: {
@@ -26,14 +29,25 @@ export function StepOne({ formData, updateFormData }: StepOneProps) {
   const map = useRef<mapboxgl.Map | null>(null)
   const marker = useRef<mapboxgl.Marker | null>(null)
   const [mapInitialized, setMapInitialized] = useState(false)
+  const [styleLoaded, setStyleLoaded] = useState(false)
   const [mapError, setMapError] = useState<string | null>(null)
+  const [isGettingLocation, setIsGettingLocation] = useState(false)
 
   // Initialize map when component mounts
   useEffect(() => {
     // Only initialize once and when the container is available
     if (map.current || !mapContainer.current) return
 
+    // Double-check that the token is set
+    if (!mapboxgl.accessToken) {
+      console.error("Mapbox token not set in StepOne!")
+      mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN
+    }
+
     try {
+      console.log("Creating map in StepOne with token:", mapboxgl.accessToken.substring(0, 10) + "...")
+      console.log("Initial location:", formData.location)
+
       // Create the map instance
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
@@ -43,42 +57,45 @@ export function StepOne({ formData, updateFormData }: StepOneProps) {
         attributionControl: false, // Hide attribution for cleaner look
       })
 
-      // Add navigation controls
-      map.current.addControl(
-        new mapboxgl.NavigationControl({
-          showCompass: false,
-        }),
-        "top-right",
-      )
-
-      // Create marker but don't add it to the map yet
-      marker.current = new mapboxgl.Marker({
-        color: "#FF0000",
-        draggable: true,
+      // Listen for style.load event
+      map.current.on("style.load", () => {
+        console.log("Map style loaded in StepOne")
+        setStyleLoaded(true)
       })
 
       // Handle map load event
       map.current.on("load", () => {
-        console.log("Map loaded successfully")
+        console.log("Map loaded successfully in StepOne")
         setMapInitialized(true)
 
-        // Add marker to the map after it's loaded
-        if (marker.current && map.current) {
-          marker.current.setLngLat([formData.location.lng, formData.location.lat]).addTo(map.current)
+        // Add navigation controls
+        map.current?.addControl(
+          new mapboxgl.NavigationControl({
+            showCompass: false,
+          }),
+          "top-right",
+        )
 
-          // Update location when marker is dragged
-          marker.current.on("dragend", () => {
-            if (marker.current) {
-              const lngLat = marker.current.getLngLat()
-              updateFormData({
-                location: {
-                  lat: lngLat.lat,
-                  lng: lngLat.lng,
-                },
-              })
-            }
-          })
-        }
+        // Create marker and add it to the map
+        marker.current = new mapboxgl.Marker({
+          color: "#FF0000",
+          draggable: true,
+        })
+          .setLngLat([formData.location.lng, formData.location.lat])
+          .addTo(map.current)
+
+        // Update location when marker is dragged
+        marker.current.on("dragend", () => {
+          if (marker.current) {
+            const lngLat = marker.current.getLngLat()
+            updateFormData({
+              location: {
+                lat: lngLat.lat,
+                lng: lngLat.lng,
+              },
+            })
+          }
+        })
 
         // Update marker position when map is clicked
         map.current.on("click", (e) => {
@@ -93,19 +110,17 @@ export function StepOne({ formData, updateFormData }: StepOneProps) {
                 lng: e.lngLat.lng,
               },
             })
-
-            // Don't call map.flyTo() here - we want the map to stay where the user clicked
           }
         })
       })
 
       // Handle map error
       map.current.on("error", (e) => {
-        console.error("Map error:", e.error)
+        console.error("Map error in StepOne:", e)
         setMapError("Erro ao carregar o mapa. Por favor, tente novamente.")
       })
     } catch (error) {
-      console.error("Error initializing map:", error)
+      console.error("Error initializing map in StepOne:", error)
       setMapError("Erro ao inicializar o mapa. Por favor, tente novamente.")
     }
 
@@ -118,19 +133,50 @@ export function StepOne({ formData, updateFormData }: StepOneProps) {
     }
   }, [])
 
-  // Add a new useEffect to update the marker position when formData.location changes
-  // Add this after the first useEffect:
+  // Update map when formData.location changes
   useEffect(() => {
-    // Only update if the map and marker are initialized and the change wasn't triggered by a map click
-    if (marker.current && map.current && mapInitialized) {
-      // Update marker position without moving the map
+    if (map.current && marker.current && mapInitialized) {
+      console.log("Updating map with new location:", formData.location)
+
+      // Update marker position
       marker.current.setLngLat([formData.location.lng, formData.location.lat])
 
-      // We don't want to automatically move the map when the coordinates change
-      // from manual input, as this can be disorienting. Instead, we'll add a
-      // separate button for that purpose.
+      // Update map center
+      map.current.flyTo({
+        center: [formData.location.lng, formData.location.lat],
+        zoom: 14,
+        essential: true,
+      })
     }
-  }, [formData.location.lat, formData.location.lng, mapInitialized])
+  }, [formData.location, mapInitialized])
+
+  // Get user's current location
+  const getUserLocation = () => {
+    if (navigator.geolocation) {
+      setIsGettingLocation(true)
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const newLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          }
+
+          // Update form data with new location
+          updateFormData({ location: newLocation })
+
+          setIsGettingLocation(false)
+        },
+        (error) => {
+          console.error("Error getting location:", error)
+          setIsGettingLocation(false)
+          alert("Não foi possível obter sua localização. Por favor, verifique as permissões do navegador.")
+        },
+        { enableHighAccuracy: true },
+      )
+    } else {
+      alert("Geolocalização não é suportada pelo seu navegador.")
+    }
+  }
 
   // Fallback content if map fails to load
   const renderMapFallback = () => {
@@ -213,49 +259,49 @@ export function StepOne({ formData, updateFormData }: StepOneProps) {
           {!mapInitialized && renderMapFallback()}
         </Card>
 
-        <div className="flex items-center justify-between mt-2 gap-4">
-          <div className="flex-1 space-y-1">
-            <Label htmlFor="latitude" className="text-xs">
-              Latitude
-            </Label>
-            <input
-              id="latitude"
-              type="number"
-              step="0.000001"
-              value={formData.location.lat}
-              onChange={handleLatChange}
-              className="w-full p-2 border-4 border-black shadow-neobrutalism text-sm"
-            />
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-2 gap-4">
+          <div className="w-full sm:w-auto flex-1 grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="latitude" className="text-xs">
+                Latitude
+              </Label>
+              <input
+                id="latitude"
+                type="number"
+                step="0.000001"
+                value={formData.location.lat}
+                onChange={handleLatChange}
+                className="w-full p-2 border-4 border-black shadow-neobrutalism text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="longitude" className="text-xs">
+                Longitude
+              </Label>
+              <input
+                id="longitude"
+                type="number"
+                step="0.000001"
+                value={formData.location.lng}
+                onChange={handleLngChange}
+                className="w-full p-2 border-4 border-black shadow-neobrutalism text-sm"
+              />
+            </div>
           </div>
-          <div className="flex-1 space-y-1">
-            <Label htmlFor="longitude" className="text-xs">
-              Longitude
-            </Label>
-            <input
-              id="longitude"
-              type="number"
-              step="0.000001"
-              value={formData.location.lng}
-              onChange={handleLngChange}
-              className="w-full p-2 border-4 border-black shadow-neobrutalism text-sm"
-            />
-          </div>
-        </div>
-        <div className="flex justify-end mt-2">
           <button
             type="button"
-            onClick={() => {
-              if (map.current) {
-                map.current.flyTo({
-                  center: [formData.location.lng, formData.location.lat],
-                  zoom: map.current.getZoom(), // Maintain current zoom level
-                  essential: true,
-                })
-              }
-            }}
-            className="px-3 py-1 text-sm bg-blue-500 text-white border-2 border-black shadow-neobrutalism hover:bg-blue-600"
+            onClick={getUserLocation}
+            disabled={isGettingLocation}
+            className="w-full sm:w-auto px-3 py-2 text-sm bg-blue-500 text-white border-4 border-black shadow-neobrutalism hover:bg-blue-600 flex items-center justify-center"
           >
-            Centralizar Mapa
+            {isGettingLocation ? (
+              <>
+                <Loader className="animate-spin mr-2 h-4 w-4" />
+                Obtendo...
+              </>
+            ) : (
+              "Minha Localização"
+            )}
           </button>
         </div>
       </div>

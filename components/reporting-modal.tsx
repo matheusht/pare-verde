@@ -28,15 +28,16 @@ export function ReportingModal({ open, onOpenChange, initialLocation }: Reportin
     email: "",
   })
 
-  // Update location when initialLocation changes
+  // Update location when initialLocation changes or when modal opens
   useEffect(() => {
-    if (initialLocation) {
+    if (initialLocation && open) {
+      console.log("Updating location in modal:", initialLocation)
       setFormData((prev) => ({
         ...prev,
         location: initialLocation,
       }))
     }
-  }, [initialLocation])
+  }, [initialLocation, open])
 
   const updateFormData = (data: Partial<typeof formData>) => {
     setFormData((prev) => ({ ...prev, ...data }))
@@ -58,11 +59,18 @@ export function ReportingModal({ open, onOpenChange, initialLocation }: Reportin
     // Reset form data or show success message
   }
 
+  // Reset to step 1 when modal is closed
+  useEffect(() => {
+    if (!open) {
+      setCurrentStep(1)
+    }
+  }, [open])
+
   const stepTitles = ["O que e onde?", "Mostre-nos", "Conte mais e envie"]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] border-4 border-black shadow-neobrutalism bg-white p-0">
+      <DialogContent className="sm:max-w-[600px] border-4 border-black shadow-neobrutalism bg-white p-0 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="bg-green-500 p-6 border-b-4 border-black">
           <DialogTitle className="text-2xl font-bold text-black">Reportar Problema</DialogTitle>
         </DialogHeader>
