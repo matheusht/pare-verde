@@ -259,7 +259,7 @@ export function StepOne({ formData, updateFormData }: StepOneProps) {
           {!mapInitialized && renderMapFallback()}
         </Card>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between mt-2 gap-4">
+        <div className="flex flex-col sm:flex-row items-end mt-2 gap-4">
           <div className="w-full sm:w-auto flex-1 grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label htmlFor="latitude" className="text-xs">
