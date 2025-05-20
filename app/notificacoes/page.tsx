@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { NotificationCard } from "../../components/notifications/notification-card"
-import { EmptyState } from "../../components/notifications/empty-state"
+import { NotificationCard } from "@/components/notifications/notification-card"
+import { EmptyState } from "@/components/notifications/empty-state"
 import { mockNotifications } from "@/data/mock-notifications"
 
 export default function NotificationsPage() {

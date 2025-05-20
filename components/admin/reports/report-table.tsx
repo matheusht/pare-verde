@@ -1,14 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronDown, ChevronUp, MoreHorizontal, Eye, CheckCircle, UserPlus, Flag } from "lucide-react"
-import type { Report } from "@/types/report"
+import { ChevronDown, ChevronUp, MoreHorizontal, Eye, CheckCircle, Users, Flag } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { formatDistanceToNow } from "date-fns"
-import { ptBR } from "date-fns/locale"
+import { Button } from "@/components/ui/button"
+import type { Report } from "@/types/report"
 
 interface ReportTableProps {
   reports: Report[]
@@ -28,222 +26,269 @@ export function ReportTable({ reports, selectedReports, onSelectReport, onSelect
       setSortDirection(sortDirection === "asc" ? "desc" : "asc")
     } else {
       setSortField(field)
-      setSortDirection("desc")
+      setSortDirection("asc")
     }
   }
 
   // Sort reports
   const sortedReports = [...reports].sort((a, b) => {
     if (sortField === "date") {
-      return sortDirection === "asc"
-        ? new Date(a.date).getTime() - new Date(b.date).getTime()
-        : new Date(b.date).getTime() - new Date(a.date).getTime()
+      const dateA = new Date(a[sortField]).getTime()
+      const dateB = new Date(b[sortField]).getTime()
+      return sortDirection === "asc" ? dateA - dateB : dateB - dateA
     }
 
     if (sortField === "severity") {
-      return sortDirection === "asc" ? a.severity - b.severity : b.severity - a.severity
+      return sortDirection === "asc" ? a[sortField] - b[sortField] : b[sortField] - a[sortField]
     }
 
-    const aValue = a[sortField]
-    const bValue = b[sortField]
-
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      return sortDirection === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)
-    }
-
-    return 0
+    const valueA = String(a[sortField]).toLowerCase()
+    const valueB = String(b[sortField]).toLowerCase()
+    return sortDirection === "asc" ? valueA.localeCompare(valueB) : valueB.localeCompare(valueA)
   })
 
   // Check if all reports are selected
   const allSelected = reports.length > 0 && selectedReports.length === reports.length
 
+  // Format date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date)
+  }
+
   // Get status badge color
-  const getStatusBadgeColor = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
-        return "bg-gray-100 text-gray-800 border-gray-800"
+        return "bg-gray-500"
       case "in-progress":
-        return "bg-yellow-100 text-yellow-800 border-yellow-800"
+        return "bg-yellow-500"
       case "resolved":
-        return "bg-green-100 text-green-800 border-green-800"
+        return "bg-green-500"
       case "rejected":
-        return "bg-red-100 text-red-800 border-red-800"
+        return "bg-red-500"
       default:
-        return "bg-gray-100 text-gray-800 border-gray-800"
+        return "bg-gray-500"
+    }
+  }
+
+  // Get status label
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "Submitted"
+      case "in-progress":
+        return "In Review"
+      case "resolved":
+        return "Resolved"
+      case "rejected":
+        return "Rejected"
+      default:
+        return "Unknown"
     }
   }
 
   // Get severity badge color
-  const getSeverityBadgeColor = (severity: number) => {
+  const getSeverityColor = (severity: number) => {
     switch (severity) {
       case 1:
-        return "bg-blue-100 text-blue-800 border-blue-800"
+        return "bg-blue-500"
       case 2:
-        return "bg-cyan-100 text-cyan-800 border-cyan-800"
+        return "bg-blue-600"
       case 3:
-        return "bg-yellow-100 text-yellow-800 border-yellow-800"
+        return "bg-yellow-500"
       case 4:
-        return "bg-orange-100 text-orange-800 border-orange-800"
+        return "bg-orange-500"
       case 5:
-        return "bg-red-100 text-red-800 border-red-800"
+        return "bg-red-500"
       default:
-        return "bg-gray-100 text-gray-800 border-gray-800"
+        return "bg-gray-500"
     }
   }
 
-  // Format category name
-  const formatCategoryName = (category: string) => {
+  // Get category label
+  const getCategoryLabel = (category: string) => {
     return category.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
   }
 
   return (
-    <div className="overflow-x-auto">
-      {reports.length === 0 ? (
-        <div className="bg-white border-2 border-black p-8 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-md">
-          <h3 className="text-xl font-bold mb-2">No reports found</h3>
-          <p className="text-gray-600">Try adjusting your filters to see more results.</p>
-        </div>
-      ) : (
-        <div className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-md">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b-2 border-black">
-                <th className="p-4">
+    <div className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-md overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-gray-100 border-b-2 border-black">
+              <th className="px-4 py-3 text-left">
+                <div className="flex items-center">
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={(checked) => onSelectAll(!!checked)}
                     aria-label="Select all reports"
                   />
-                </th>
-                <th className="p-4 text-left cursor-pointer" onClick={() => handleSort("title")}>
-                  <div className="flex items-center">
-                    Report Title
-                    {sortField === "title" &&
-                      (sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                  </div>
-                </th>
-                <th className="p-4 text-left cursor-pointer" onClick={() => handleSort("category")}>
-                  <div className="flex items-center">
-                    Category
-                    {sortField === "category" &&
-                      (sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                  </div>
-                </th>
-                <th className="p-4 text-left cursor-pointer" onClick={() => handleSort("severity")}>
-                  <div className="flex items-center">
-                    Severity
-                    {sortField === "severity" &&
-                      (sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                  </div>
-                </th>
-                <th className="p-4 text-left cursor-pointer" onClick={() => handleSort("status")}>
-                  <div className="flex items-center">
-                    Status
-                    {sortField === "status" &&
-                      (sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                  </div>
-                </th>
-                <th className="p-4 text-left cursor-pointer" onClick={() => handleSort("location")}>
-                  <div className="flex items-center">
-                    Location
-                    {sortField === "location" &&
-                      (sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                  </div>
-                </th>
-                <th className="p-4 text-left cursor-pointer" onClick={() => handleSort("date")}>
-                  <div className="flex items-center">
-                    Date
-                    {sortField === "date" &&
-                      (sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
-                  </div>
-                </th>
-                <th className="p-4 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedReports.map((report) => (
-                <tr key={report.id} className="border-b border-gray-200 hover:bg-gray-50">
-                  <td className="p-4">
+                </div>
+              </th>
+              <th className="px-4 py-3 text-left">
+                <button
+                  className="flex items-center font-bold"
+                  onClick={() => handleSort("title")}
+                  aria-label="Sort by title"
+                >
+                  Report Title
+                  {sortField === "title" && (
+                    <span className="ml-1">
+                      {sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </span>
+                  )}
+                </button>
+              </th>
+              <th className="px-4 py-3 text-left">
+                <button
+                  className="flex items-center font-bold"
+                  onClick={() => handleSort("category")}
+                  aria-label="Sort by category"
+                >
+                  Category
+                  {sortField === "category" && (
+                    <span className="ml-1">
+                      {sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </span>
+                  )}
+                </button>
+              </th>
+              <th className="px-4 py-3 text-left">
+                <button
+                  className="flex items-center font-bold"
+                  onClick={() => handleSort("severity")}
+                  aria-label="Sort by severity"
+                >
+                  Severity
+                  {sortField === "severity" && (
+                    <span className="ml-1">
+                      {sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </span>
+                  )}
+                </button>
+              </th>
+              <th className="px-4 py-3 text-left">
+                <button
+                  className="flex items-center font-bold"
+                  onClick={() => handleSort("status")}
+                  aria-label="Sort by status"
+                >
+                  Status
+                  {sortField === "status" && (
+                    <span className="ml-1">
+                      {sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </span>
+                  )}
+                </button>
+              </th>
+              <th className="px-4 py-3 text-left">
+                <button
+                  className="flex items-center font-bold"
+                  onClick={() => handleSort("region")}
+                  aria-label="Sort by location"
+                >
+                  Location
+                  {sortField === "region" && (
+                    <span className="ml-1">
+                      {sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </span>
+                  )}
+                </button>
+              </th>
+              <th className="px-4 py-3 text-left">
+                <button
+                  className="flex items-center font-bold"
+                  onClick={() => handleSort("date")}
+                  aria-label="Sort by date"
+                >
+                  Date
+                  {sortField === "date" && (
+                    <span className="ml-1">
+                      {sortDirection === "asc" ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </span>
+                  )}
+                </button>
+              </th>
+              <th className="px-4 py-3 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y-2 divide-black">
+            {sortedReports.length > 0 ? (
+              sortedReports.map((report) => (
+                <tr key={report.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3">
                     <Checkbox
                       checked={selectedReports.includes(report.id)}
                       onCheckedChange={(checked) => onSelectReport(report.id, !!checked)}
                       aria-label={`Select report ${report.id}`}
                     />
                   </td>
-                  <td className="p-4 font-medium">
-                    <div className="flex items-center">
-                      <span className="text-sm font-mono text-gray-500 mr-2">#{report.id}</span>
-                      {report.title}
-                    </div>
-                  </td>
-                  <td className="p-4">{formatCategoryName(report.category)}</td>
-                  <td className="p-4">
-                    <Badge className={`${getSeverityBadgeColor(report.severity)} border-2`}>{report.severity}</Badge>
-                  </td>
-                  <td className="p-4">
-                    <Badge className={`${getStatusBadgeColor(report.status)} border-2`}>
-                      {report.status === "pending" && "Submitted"}
-                      {report.status === "in-progress" && "In Review"}
-                      {report.status === "resolved" && "Resolved"}
-                      {report.status === "rejected" && "Rejected"}
+                  <td className="px-4 py-3 font-medium">{report.title}</td>
+                  <td className="px-4 py-3">{getCategoryLabel(report.category)}</td>
+                  <td className="px-4 py-3">
+                    <Badge className={`${getSeverityColor(report.severity)} text-white border-2 border-black`}>
+                      {report.severity}
                     </Badge>
                   </td>
-                  <td className="p-4">
-                    <div>
-                      <div>{report.location}</div>
-                      <div className="text-xs text-gray-500 capitalize">{report.region}</div>
+                  <td className="px-4 py-3">
+                    <Badge className={`${getStatusColor(report.status)} text-white border-2 border-black`}>
+                      {getStatusLabel(report.status)}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col">
+                      <span>{report.location}</span>
+                      <span className="text-xs text-gray-500">{report.region}</span>
                     </div>
                   </td>
-                  <td className="p-4">
-                    <div>
-                      <div>{new Date(report.date).toLocaleDateString()}</div>
-                      <div className="text-xs text-gray-500">
-                        {formatDistanceToNow(new Date(report.date), {
-                          addSuffix: true,
-                          locale: ptBR,
-                        })}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex justify-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal size={16} />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                        >
-                          <DropdownMenuItem onClick={() => onViewReport(report)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            <span>View Details</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            <span>Mark as Resolved</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <UserPlus className="mr-2 h-4 w-4" />
-                            <span>Assign</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Flag className="mr-2 h-4 w-4" />
-                            <span>Flag for Review</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                  <td className="px-4 py-3 whitespace-nowrap">{formatDate(report.date)}</td>
+                  <td className="px-4 py-3 text-center">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Open menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="border-2 border-black">
+                        <DropdownMenuItem onClick={() => onViewReport(report)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          <span>View Details</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          <span>Mark as Resolved</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Users className="mr-2 h-4 w-4" />
+                          <span>Assign</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Flag className="mr-2 h-4 w-4" />
+                          <span>Flag for Review</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              ))
+            ) : (
+              <tr>
+                <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                  No reports found. Try adjusting your filters.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

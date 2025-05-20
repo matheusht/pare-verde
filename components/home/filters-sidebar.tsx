@@ -22,10 +22,10 @@ export function FiltersSidebar({ isOpen, onOpenChange }: FiltersSidebarProps) {
           <div>
             <h3 className="font-bold mb-2">Período</h3>
             <div className="px-2">
-              <Slider defaultValue={[2025]} min={2010} max={2025} step={1} className="border-2 border-black" />
+              <Slider defaultValue={[2023]} min={2010} max={2023} step={1} className="border-2 border-black" />
               <div className="flex justify-between mt-1 text-sm">
                 <span>2010</span>
-                <span>2025</span>
+                <span>2023</span>
               </div>
             </div>
           </div>

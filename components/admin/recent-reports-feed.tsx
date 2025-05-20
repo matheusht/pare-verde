@@ -17,15 +17,15 @@ export function RecentReportsFeed({ reports, isLoading }: RecentReportsFeedProps
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
-        return "bg-yellow-500"
+        return "bg-yellow-500 text-white"
       case "in-progress":
-        return "bg-blue-500"
+        return "bg-blue-500 text-white"
       case "resolved":
-        return "bg-green-500"
+        return "bg-green-500 text-white"
       case "rejected":
-        return "bg-red-500"
+        return "bg-red-500 text-white"
       default:
-        return "bg-gray-500"
+        return "bg-gray-500 text-white"
     }
   }
 
@@ -119,10 +119,12 @@ export function RecentReportsFeed({ reports, isLoading }: RecentReportsFeedProps
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <h3 className="font-bold">{report.title}</h3>
-                      <Badge className={`${getStatusColor(report.status)} text-white border-2 border-black`}>
+                      <Badge className={`${getStatusColor(report.status)} border-2 border-black`}>
                         {getStatusLabel(report.status)}
                       </Badge>
-                      <Badge className="bg-gray-200 border-2 border-black">{getCategoryLabel(report.category)}</Badge>
+                      <Badge className="bg-gray-200 text-gray-800 border-2 border-black">
+                        {getCategoryLabel(report.category)}
+                      </Badge>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-600 gap-1 sm:gap-3">
                       <div className="flex items-center">
@@ -154,8 +156,8 @@ export function RecentReportsFeed({ reports, isLoading }: RecentReportsFeedProps
           <div className="p-4 border-t-4 border-black bg-gray-50">
             <Link href="/admin/reports">
               <Button
-                variant="neobrutalism"
-                className="w-full bg-blue-500 hover:bg-blue-600 border-4 border-black shadow-neobrutalism text-white"
+                variant="default"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
               >
                 Ver Todos os Relatórios
                 <ChevronRight className="h-5 w-5 ml-1" />

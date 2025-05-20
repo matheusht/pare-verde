@@ -98,11 +98,11 @@ export function DetailPanel({
           <TabsContent value="trends" className="mt-4">
             <div className="space-y-4">
               {/* Neobrutalism Bar Chart */}
-              <NeobrutalismBarChart title="Cobertura Verde (2018-2025)" data={greenCoverageData} />
+              <NeobrutalismBarChart title="Cobertura Verde (2018-2023)" data={greenCoverageData} />
 
               {/* Neobrutalism Line Chart */}
               <NeobrutalismLineChart
-                title="Temperatura (Jan-Jun 2025)"
+                title="Temperatura (Jan-Jun 2023)"
                 labels={temperatureData.labels}
                 data={temperatureData.data}
               />

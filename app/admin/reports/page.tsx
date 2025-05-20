@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
+import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { FilterBar } from "@/components/admin/reports/filter-bar"
 import { ReportTable } from "@/components/admin/reports/report-table"
 import { BatchActionsToolbar } from "@/components/admin/reports/batch-actions-toolbar"
@@ -8,100 +10,189 @@ import { ReportDetailDrawer } from "@/components/admin/reports/report-detail-dra
 import { Pagination } from "@/components/admin/reports/pagination"
 import { mockReports } from "@/data/mock-reports"
 import type { Report } from "@/types/report"
-import { FileIcon, MapPinIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
-export default function ReportManagementPage() {
-  const [filteredReports, setFilteredReports] = useState<Report[]>(mockReports)
+export default function ReportsPage() {
+  const searchParams = useSearchParams()
+
+  // State for filters
+  const [filters, setFilters] = useState({
+    search: "",
+    status: searchParams?.get("status") || "all",
+    category: "all",
+    severity: "all",
+    neighborhood: "all",
+    dateRange: {
+      from: undefined as Date | undefined,
+      to: undefined as Date | undefined,
+    },
+    showUnread: false,
+  })
+
+  // State for selected reports
   const [selectedReports, setSelectedReports] = useState<string[]>([])
-  const [currentPage, setCurrentPage] = useState(1)
-  const [reportsPerPage] = useState(10)
+
+  // State for report detail drawer
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false)
   const [selectedReport, setSelectedReport] = useState<Report | null>(null)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
-  // Filter handlers
-  const handleFilterChange = (filteredData: Report[]) => {
-    setFilteredReports(filteredData)
-    setCurrentPage(1) // Reset to first page when filtering
-  }
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const reportsPerPage = 10
 
-  // Selection handlers
-  const handleSelectAll = (isSelected: boolean) => {
-    if (isSelected) {
-      setSelectedReports(currentReports.map((report) => report.id))
-    } else {
-      setSelectedReports([])
+  // Apply filters to reports
+  const filteredReports = mockReports.filter((report) => {
+    // Filter by search
+    if (
+      filters.search &&
+      !report.id.toLowerCase().includes(filters.search.toLowerCase()) &&
+      !report.title.toLowerCase().includes(filters.search.toLowerCase()) &&
+      !report.region.toLowerCase().includes(filters.search.toLowerCase())
+    ) {
+      return false
     }
+
+    // Filter by status
+    if (filters.status !== "all") {
+      if (filters.status === "assigned" && !report.assignedTo) {
+        return false
+      } else if (filters.status !== "assigned" && report.status !== filters.status) {
+        return false
+      }
+    }
+
+    // Filter by category
+    if (filters.category !== "all" && report.category !== filters.category) {
+      return false
+    }
+
+    // Filter by severity
+    if (filters.severity !== "all" && report.severity.toString() !== filters.severity) {
+      return false
+    }
+
+    // Filter by neighborhood
+    if (filters.neighborhood !== "all" && report.region !== filters.neighborhood) {
+      return false
+    }
+
+    // Filter by date range
+    if (filters.dateRange.from && new Date(report.date) < filters.dateRange.from) {
+      return false
+    }
+    if (filters.dateRange.to) {
+      const toDate = new Date(filters.dateRange.to)
+      toDate.setHours(23, 59, 59, 999)
+      if (new Date(report.date) > toDate) {
+        return false
+      }
+    }
+
+    // Filter by unread
+    if (filters.showUnread && report.read) {
+      return false
+    }
+
+    return true
+  })
+
+  // Get current reports for pagination
+  const indexOfLastReport = currentPage * reportsPerPage
+  const indexOfFirstReport = indexOfLastReport - reportsPerPage
+  const currentReports = Array.isArray(filteredReports)
+    ? filteredReports.slice(indexOfFirstReport, indexOfLastReport)
+    : []
+
+  // Change page
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
+
+  // Handle filter change
+  const handleFilterChange = (newFilters: typeof filters) => {
+    setFilters(newFilters)
+    setCurrentPage(1) // Reset to first page when filters change
   }
 
-  const handleSelectReport = (reportId: string, isSelected: boolean) => {
-    if (isSelected) {
+  // Handle report selection
+  const handleReportSelect = (reportId: string, selected: boolean) => {
+    if (selected) {
       setSelectedReports([...selectedReports, reportId])
     } else {
       setSelectedReports(selectedReports.filter((id) => id !== reportId))
     }
   }
 
-  // Pagination
-  const indexOfLastReport = currentPage * reportsPerPage
-  const indexOfFirstReport = indexOfLastReport - reportsPerPage
-  const currentReports = filteredReports.slice(indexOfFirstReport, indexOfLastReport)
-  const totalPages = Math.ceil(filteredReports.length / reportsPerPage)
+  // Handle select all reports
+  const handleSelectAll = (selected: boolean) => {
+    if (selected) {
+      setSelectedReports(currentReports.map((report) => report.id))
+    } else {
+      setSelectedReports([])
+    }
+  }
 
-  // Report detail handlers
+  // Handle view report details
   const handleViewReport = (report: Report) => {
     setSelectedReport(report)
-    setIsDrawerOpen(true)
+    setDetailDrawerOpen(true)
   }
 
-  const handleCloseDrawer = () => {
-    setIsDrawerOpen(false)
+  // Handle batch actions
+  const handleBatchAction = (action: string) => {
+    console.log(`Performing ${action} on reports:`, selectedReports)
+    // Reset selection after action
+    setSelectedReports([])
   }
+
+  // Update filters when URL parameters change
+  useEffect(() => {
+    const status = searchParams?.get("status") || "all"
+    setFilters((prev) => ({
+      ...prev,
+      status,
+    }))
+  }, [searchParams])
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Report Management</h1>
-          <p className="text-gray-600 mb-4">Manage and respond to citizen reports</p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3 mt-4 md:mt-0">
-          <Button
-            variant="neobrutalism"
-            className="bg-green-100 border-2 border-green-900 shadow-[4px_4px_0px_0px_rgba(22,101,52)]"
-          >
-            <FileIcon className="mr-2 h-4 w-4" />
-            Export All Reports
-          </Button>
-          <Button
-            variant="neobrutalism"
-            className="bg-blue-100 border-2 border-blue-900 shadow-[4px_4px_0px_0px_rgba(30,58,138)]"
-          >
-            <MapPinIcon className="mr-2 h-4 w-4" />
-            View on Map
-          </Button>
+    <div className="flex h-screen bg-gray-100">
+      <AdminSidebar />
+      <div className="flex-1 overflow-auto">
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold mb-2">Report Management</h1>
+            <p className="text-gray-600">Manage and track all citizen-submitted reports</p>
+          </div>
+
+          <FilterBar filters={filters} onFilterChange={handleFilterChange} />
+
+          {selectedReports.length > 0 && (
+            <BatchActionsToolbar
+              selectedCount={selectedReports.length}
+              onAction={handleBatchAction}
+              onClearSelection={() => setSelectedReports([])}
+            />
+          )}
+
+          <ReportTable
+            reports={currentReports}
+            selectedReports={selectedReports}
+            onSelectReport={handleReportSelect}
+            onSelectAll={handleSelectAll}
+            onViewReport={handleViewReport}
+          />
+
+          <Pagination
+            reportsPerPage={reportsPerPage}
+            totalReports={filteredReports.length}
+            currentPage={currentPage}
+            paginate={paginate}
+          />
+
+          <ReportDetailDrawer
+            report={selectedReport}
+            open={detailDrawerOpen}
+            onClose={() => setDetailDrawerOpen(false)}
+          />
         </div>
       </div>
-
-      <FilterBar onFilterChange={handleFilterChange} allReports={mockReports} />
-
-      {selectedReports.length > 0 && (
-        <BatchActionsToolbar selectedCount={selectedReports.length} onClearSelection={() => setSelectedReports([])} />
-      )}
-
-      <ReportTable
-        reports={currentReports}
-        selectedReports={selectedReports}
-        onSelectReport={handleSelectReport}
-        onSelectAll={handleSelectAll}
-        onViewReport={handleViewReport}
-      />
-
-      {filteredReports.length > reportsPerPage && (
-        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
-      )}
-
-      <ReportDetailDrawer report={selectedReport} isOpen={isDrawerOpen} onClose={handleCloseDrawer} />
     </div>
   )
 }

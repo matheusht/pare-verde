@@ -1,275 +1,185 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import type React from "react"
+
+import { useState } from "react"
 import { Search, Filter, X } from "lucide-react"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Select } from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import type { Report } from "@/types/report"
-import { Badge } from "@/components/ui/badge"
-import { format } from "date-fns"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 
 interface FilterBarProps {
-  onFilterChange: (filteredReports: Report[]) => void
-  allReports: Report[]
+  onFilterChange: (filters: any) => void
+  onSearch: (query: string) => void
+  totalReports: number
+  activeFilters: number
 }
 
-export function FilterBar({ onFilterChange, allReports }: FilterBarProps) {
-  // Filter states
+export function FilterBar({ onFilterChange, onSearch, totalReports, activeFilters }: FilterBarProps) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [categoryFilter, setCategoryFilter] = useState<string>("all")
-  const [severityFilter, setSeverityFilter] = useState<string>("all")
-  const [neighborhoodFilter, setNeighborhoodFilter] = useState<string>("all")
-  const [showOnlyUnread, setShowOnlyUnread] = useState(false)
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined
-    to: Date | undefined
-  }>({
-    from: undefined,
-    to: undefined,
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState({
+    status: "all",
+    category: "all",
+    severity: "all",
+    neighborhood: "all",
+    showUnread: false,
   })
 
-  // Active filters count
-  const [activeFiltersCount, setActiveFiltersCount] = useState(0)
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value)
+  }
 
-  // Get unique values for filters
-  const categories = ["all", ...new Set(allReports.map((report) => report.category))]
-  const neighborhoods = ["all", ...new Set(allReports.map((report) => report.region))]
+  // Handle search submission
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onSearch(searchQuery)
+  }
 
-  // Apply filters
-  useEffect(() => {
-    let filtered = [...allReports]
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (report) =>
-          report.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          report.location.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    }
-
-    // Status filter
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((report) => report.status === statusFilter)
-    }
-
-    // Category filter
-    if (categoryFilter !== "all") {
-      filtered = filtered.filter((report) => report.category === categoryFilter)
-    }
-
-    // Severity filter
-    if (severityFilter !== "all") {
-      filtered = filtered.filter((report) => report.severity === Number.parseInt(severityFilter))
-    }
-
-    // Neighborhood filter
-    if (neighborhoodFilter !== "all") {
-      filtered = filtered.filter((report) => report.region === neighborhoodFilter)
-    }
-
-    // Date range filter
-    if (dateRange.from) {
-      filtered = filtered.filter((report) => {
-        const reportDate = new Date(report.date)
-        return reportDate >= dateRange.from!
-      })
-    }
-
-    if (dateRange.to) {
-      filtered = filtered.filter((report) => {
-        const reportDate = new Date(report.date)
-        return reportDate <= dateRange.to!
-      })
-    }
-
-    // Unread filter (mock implementation - in a real app, you'd have a read/unread status)
-    if (showOnlyUnread) {
-      filtered = filtered.filter((report) => report.status === "pending")
-    }
-
-    // Count active filters
-    let count = 0
-    if (searchQuery) count++
-    if (statusFilter !== "all") count++
-    if (categoryFilter !== "all") count++
-    if (severityFilter !== "all") count++
-    if (neighborhoodFilter !== "all") count++
-    if (dateRange.from || dateRange.to) count++
-    if (showOnlyUnread) count++
-    setActiveFiltersCount(count)
-
-    onFilterChange(filtered)
-  }, [
-    searchQuery,
-    statusFilter,
-    categoryFilter,
-    severityFilter,
-    neighborhoodFilter,
-    dateRange,
-    showOnlyUnread,
-    allReports,
-    onFilterChange,
-  ])
+  // Handle filter change
+  const handleFilterChange = (key: string, value: string | boolean) => {
+    const newFilters = { ...filters, [key]: value }
+    setFilters(newFilters)
+    onFilterChange(newFilters)
+  }
 
   // Reset all filters
   const resetFilters = () => {
-    setSearchQuery("")
-    setStatusFilter("all")
-    setCategoryFilter("all")
-    setSeverityFilter("all")
-    setNeighborhoodFilter("all")
-    setDateRange({ from: undefined, to: undefined })
-    setShowOnlyUnread(false)
+    const resetValues = {
+      status: "all",
+      category: "all",
+      severity: "all",
+      neighborhood: "all",
+      showUnread: false,
+    }
+    setFilters(resetValues)
+    onFilterChange(resetValues)
   }
 
   return (
-    <div className="bg-white border-2 border-black p-4 mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-md">
-      <div className="flex flex-col md:flex-row gap-4 mb-4">
-        {/* Search input */}
-        <div className="relative flex-grow">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-          <Input
-            placeholder="Search by ID, address, or keyword..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 border-2 border-black"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              <X size={18} />
-            </button>
+    <div className="w-full space-y-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center">
+          <h2 className="text-2xl font-bold">Reports</h2>
+          <div className="ml-4 rounded-full bg-gray-100 px-3 py-1 text-sm">{totalReports} total</div>
+          {activeFilters > 0 && (
+            <div className="ml-2 rounded-full bg-green-100 px-3 py-1 text-sm">{activeFilters} filters active</div>
           )}
         </div>
-
-        {/* Status filter */}
-        <div className="w-full md:w-48">
-          <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status">
-            <option value="all">All Statuses</option>
-            <option value="pending">Submitted</option>
-            <option value="in-progress">In Review</option>
-            <option value="resolved">Resolved</option>
-            <option value="rejected">Rejected</option>
-          </Select>
-        </div>
-
-        {/* Category filter */}
-        <div className="w-full md:w-48">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category">
-            <option value="all">All Categories</option>
-            {categories
-              .filter((cat) => cat !== "all")
-              .map((category) => (
-                <option key={category} value={category}>
-                  {category.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                </option>
-              ))}
-          </Select>
-        </div>
-
-        {/* Filter button with popover for additional filters */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="border-2 border-black flex items-center gap-2">
-              <Filter size={16} />
-              More Filters
-              {activeFiltersCount > 0 && <Badge className="ml-1 bg-black text-white">{activeFiltersCount}</Badge>}
+        <div className="flex gap-2">
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search reports..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="h-10 rounded-md border-2 border-black bg-white pl-10 pr-4 text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none"
+            />
+          </form>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowFilters(!showFilters)}
+            className={showFilters ? "bg-gray-200" : ""}
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
+          {activeFilters > 0 && (
+            <Button variant="outline" size="icon" onClick={resetFilters}>
+              <X className="h-4 w-4" />
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 p-4 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <div className="space-y-4">
-              <h3 className="font-bold text-lg mb-2">Filters</h3>
-
-              {/* Severity filter */}
-              <div>
-                <Label htmlFor="severity">Severity</Label>
-                <Select id="severity" value={severityFilter} onValueChange={setSeverityFilter} placeholder="Severity">
-                  <option value="all">All Severities</option>
-                  <option value="1">1 - Low</option>
-                  <option value="2">2</option>
-                  <option value="3">3 - Medium</option>
-                  <option value="4">4</option>
-                  <option value="5">5 - High</option>
-                </Select>
-              </div>
-
-              {/* Neighborhood filter */}
-              <div>
-                <Label htmlFor="neighborhood">Neighborhood</Label>
-                <Select
-                  id="neighborhood"
-                  value={neighborhoodFilter}
-                  onValueChange={setNeighborhoodFilter}
-                  placeholder="Neighborhood"
-                >
-                  <option value="all">All Neighborhoods</option>
-                  {neighborhoods
-                    .filter((n) => n !== "all")
-                    .map((neighborhood) => (
-                      <option key={neighborhood} value={neighborhood}>
-                        {neighborhood.charAt(0).toUpperCase() + neighborhood.slice(1)}
-                      </option>
-                    ))}
-                </Select>
-              </div>
-
-              {/* Date range filter */}
-              <div>
-                <Label>Date Range</Label>
-                <div className="flex flex-col gap-2 mt-2">
-                  <Calendar
-                    mode="range"
-                    selected={dateRange}
-                    onSelect={setDateRange as any}
-                    className="border rounded-md p-2"
-                  />
-                  {(dateRange.from || dateRange.to) && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span>
-                        {dateRange.from ? format(dateRange.from, "MMM dd, yyyy") : "Start date"}
-                        {" - "}
-                        {dateRange.to ? format(dateRange.to, "MMM dd, yyyy") : "End date"}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDateRange({ from: undefined, to: undefined })}
-                      >
-                        <X size={14} />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Show only unread */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="unread"
-                  checked={showOnlyUnread}
-                  onCheckedChange={(checked) => setShowOnlyUnread(checked as boolean)}
-                />
-                <Label htmlFor="unread">Show only unread</Label>
-              </div>
-
-              {/* Reset filters */}
-              <Button variant="outline" className="w-full border-2 border-black mt-2" onClick={resetFilters}>
-                Reset All Filters
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
+          )}
+        </div>
       </div>
+
+      {showFilters && (
+        <div className="rounded-md border-2 border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select onValueChange={(value) => handleFilterChange("status", value)} defaultValue={filters.status}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="submitted">Submitted</SelectItem>
+                  <SelectItem value="in-review">In Review</SelectItem>
+                  <SelectItem value="resolved">Resolved</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Category</label>
+              <Select onValueChange={(value) => handleFilterChange("category", value)} defaultValue={filters.category}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="accessibility">Accessibility</SelectItem>
+                  <SelectItem value="green-areas">Green Areas</SelectItem>
+                  <SelectItem value="infrastructure">Infrastructure</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Severity</label>
+              <Select onValueChange={(value) => handleFilterChange("severity", value)} defaultValue={filters.severity}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select severity" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Severities</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Neighborhood</label>
+              <Select
+                onValueChange={(value) => handleFilterChange("neighborhood", value)}
+                defaultValue={filters.neighborhood}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select neighborhood" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Neighborhoods</SelectItem>
+                  <SelectItem value="centro">Centro</SelectItem>
+                  <SelectItem value="ipanema">Ipanema</SelectItem>
+                  <SelectItem value="copacabana">Copacabana</SelectItem>
+                  <SelectItem value="tijuca">Tijuca</SelectItem>
+                  <SelectItem value="barra">Barra da Tijuca</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end space-x-2">
+              <label className="flex cursor-pointer items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={filters.showUnread}
+                  onChange={(e) => handleFilterChange("showUnread", e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <span className="text-sm font-medium">Show only unread</span>
+              </label>
+            </div>
+          </div>
+          <Separator className="my-4" />
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={resetFilters}>
+              Reset Filters
+            </Button>
+            <Button onClick={() => setShowFilters(false)}>Apply Filters</Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

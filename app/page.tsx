@@ -42,7 +42,7 @@ export default function Dashboard() {
     { label: "2020", value: 22, color: "#4ade80" },
     { label: "2021", value: 21, color: "#4ade80" },
     { label: "2022", value: 23, color: "#4ade80" },
-    { label: "2025", value: 25, color: "#4ade80" },
+    { label: "2023", value: 25, color: "#4ade80" },
   ]
 
   const temperatureData = {
