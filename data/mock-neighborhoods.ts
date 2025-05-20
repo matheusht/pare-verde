@@ -1,0 +1,68 @@
+import type { Neighborhood } from "@/types/neighborhood"
+
+export const mockNeighborhoods: Neighborhood[] = [
+  {
+    id: "1",
+    name: "Centro",
+    region: "centro",
+    reportCount: 156,
+    avgResponseTime: 36,
+    isCritical: false,
+  },
+  {
+    id: "2",
+    name: "Jardim América",
+    region: "oeste",
+    reportCount: 124,
+    avgResponseTime: 48,
+    isCritical: false,
+  },
+  {
+    id: "3",
+    name: "Vila Nova",
+    region: "leste",
+    reportCount: 98,
+    avgResponseTime: 72,
+    isCritical: true,
+  },
+  {
+    id: "4",
+    name: "Bela Vista",
+    region: "centro",
+    reportCount: 87,
+    avgResponseTime: 24,
+    isCritical: false,
+  },
+  {
+    id: "5",
+    name: "Liberdade",
+    region: "centro",
+    reportCount: 76,
+    avgResponseTime: 36,
+    isCritical: false,
+  },
+  {
+    id: "6",
+    name: "Pinheiros",
+    region: "oeste",
+    reportCount: 65,
+    avgResponseTime: 48,
+    isCritical: false,
+  },
+  {
+    id: "7",
+    name: "Moema",
+    region: "sul",
+    reportCount: 54,
+    avgResponseTime: 60,
+    isCritical: true,
+  },
+  {
+    id: "8",
+    name: "Santana",
+    region: "norte",
+    reportCount: 43,
+    avgResponseTime: 36,
+    isCritical: false,
+  },
+]
