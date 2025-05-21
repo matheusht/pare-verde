@@ -17,7 +17,7 @@ import {
   mockNeighborhoods,
   mockSpatialData,
   mockPredictiveScenarios,
-  mockDistricts,
+  mockDistricts
 } from "../../../data/mock-analytics-data"
 
 export default function AnalyticsPage() {
