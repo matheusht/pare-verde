@@ -35,7 +35,7 @@ export const mockNeighborhoods: Neighborhood[] = [
   },
   {
     id: "5",
-    name: "Liberdade",
+    name: "Lar Paraná",
     region: "centro",
     reportCount: 76,
     avgResponseTime: 36,

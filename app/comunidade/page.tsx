@@ -328,7 +328,6 @@ export default function CommunityHub() {
             ))}
           </div>
         </section>
-
         {/* Volunteer Opportunities Section */}
         <section ref={sectionRefs.volunteer} className="mb-16 scroll-mt-32">
           <div className="flex items-center gap-3 mb-6">
@@ -365,7 +364,7 @@ export default function CommunityHub() {
                 {[
                   {
                     title: "Plantio de Árvores no Parque Central",
-                    date: "24/05/2023",
+                    date: "24/05/2025",
                     time: "09:00 - 12:00",
                     location: "Parque Central",
                     tags: ["Plantio", "Áreas Verdes"],
@@ -373,7 +372,7 @@ export default function CommunityHub() {
                   },
                   {
                     title: "Limpeza da Praia Municipal",
-                    date: "30/05/2023",
+                    date: "30/05/2025",
                     time: "08:00 - 11:00",
                     location: "Praia Municipal",
                     tags: ["Limpeza", "Resíduos"],
@@ -381,7 +380,7 @@ export default function CommunityHub() {
                   },
                   {
                     title: "Workshop de Compostagem",
-                    date: "02/06/2023",
+                    date: "02/06/2025",
                     time: "14:00 - 16:00",
                     location: "Centro Comunitário",
                     tags: ["Educação", "Resíduos"],
@@ -389,7 +388,7 @@ export default function CommunityHub() {
                   },
                   {
                     title: "Mapeamento de Calçadas Acessíveis",
-                    date: "10/06/2023",
+                    date: "10/06/2025",
                     time: "10:00 - 13:00",
                     location: "Centro da Cidade",
                     tags: ["Acessibilidade", "Mapeamento"],
@@ -483,7 +482,7 @@ export default function CommunityHub() {
                   <div className="w-24 h-24 bg-gray-200 rounded-full border-4 border-black mb-2 flex items-center justify-center">
                     <Users className="h-12 w-12" />
                   </div>
-                  <h3 className="font-bold text-xl">Usuário</h3>
+                  <h3 className="font-bold text-xl">Matheus</h3>
                   <p className="text-sm text-gray-600">Nível 3: Cidadão Ativo</p>
                 </div>
 
@@ -546,7 +545,7 @@ export default function CommunityHub() {
                         { name: "Jardim América", count: 124, color: "bg-gray-300" },
                         { name: "Vila Nova", count: 98, color: "bg-orange-300" },
                         { name: "Bela Vista", count: 87, color: "bg-gray-300" },
-                        { name: "Liberdade", count: 76, color: "bg-gray-300" },
+                        { name: "Lar Paraná", count: 76, color: "bg-gray-300" },
                       ].map((neighborhood, index) => (
                         <div key={index} className="border-4 border-black p-3 flex justify-between items-center">
                           <div className="flex items-center">
@@ -571,7 +570,7 @@ export default function CommunityHub() {
                         { name: "Centro", count: 98, color: "bg-gray-300" },
                         { name: "Bela Vista", count: 76, color: "bg-orange-300" },
                         { name: "Vila Nova", count: 65, color: "bg-gray-300" },
-                        { name: "Liberdade", count: 54, color: "bg-gray-300" },
+                        { name: "Lar Paraná", count: 54, color: "bg-gray-300" },
                       ].map((neighborhood, index) => (
                         <div key={index} className="border-4 border-black p-3 flex justify-between items-center">
                           <div className="flex items-center">

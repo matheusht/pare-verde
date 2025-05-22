@@ -100,6 +100,7 @@ export default function AdminDashboard() {
               />
               <NeighborhoodTable neighborhoods={mockNeighborhoods} isLoading={isLoading} />
             </div>
+            
           </div>
         </main>
       </div>

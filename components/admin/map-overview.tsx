@@ -33,7 +33,7 @@ export function MapOverview({ reports, isLoading }: MapOverviewProps) {
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: "mapbox://styles/mapbox/light-v11",
+      style: "mapbox://styles/mapbox/streets-v12",
       center: [-47.9292, -15.7801], // Brasília as default
       zoom: 11,
     })
